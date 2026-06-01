@@ -1,0 +1,22 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Idea {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  type        String   @default("outro")
+  typeLabel   String   @default("Outro")
+  status      String   @default("aberta")
+  author      String   @default("Anônimo")
+  votes       Int      @default(0)
+  duplicateIds String  @default("[]")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
