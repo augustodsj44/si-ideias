@@ -13,8 +13,18 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR" className={`${geist.variable} h-full antialiased`}>
-      <body className="min-h-full bg-gray-50">{children}</body>
+    <html lang="pt-BR" className={geist.variable} suppressHydrationWarning>
+      <head>
+        {/* Evita flash ao carregar: lê tema do localStorage antes do React pintar */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}}catch(e){}})()`,
+          }}
+        />
+      </head>
+      <body className="min-h-full bg-[var(--bg)] text-[var(--fg)] antialiased">
+        {children}
+      </body>
     </html>
   );
 }

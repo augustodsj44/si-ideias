@@ -1,18 +1,20 @@
 @import "tailwindcss";
 
+/* Dark mode via classe .dark no <html> */
+@variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #f9fafb;
-  --foreground: #111827;
+  --bg: #f9fafb;
+  --fg: #111827;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+.dark {
+  --bg: #0f172a;
+  --fg: #f1f5f9;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg);
+  color: var(--fg);
   font-family: var(--font-geist-sans), Arial, sans-serif;
 }

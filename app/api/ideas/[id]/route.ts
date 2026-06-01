@@ -2,6 +2,16 @@ import { NextRequest } from "next/server";
 import { getPrisma } from "@/lib/db";
 import { TYPE_LABELS, type IdeaType } from "@/lib/types";
 
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const prisma = await getPrisma();
+  await prisma.idea.delete({ where: { id } });
+  return new Response(null, { status: 204 });
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

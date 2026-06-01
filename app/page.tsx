@@ -13,17 +13,17 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen">
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-10 shadow-sm">
+      <header className="bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800 sticky top-0 z-10 shadow-sm">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">
+            <h1 className="text-xl font-bold text-gray-900 dark:text-slate-100">
               💡 Ideias para o SI
             </h1>
-            <p className="text-xs text-gray-400 mt-0.5">Sistema Interno · Sugestões de melhoria</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">Sistema Interno · Sugestões de melhoria</p>
           </div>
-          <div className="flex items-center gap-4 text-sm text-gray-500">
+          <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-slate-400">
             <span>{ideas.length} ideia{ideas.length !== 1 ? "s" : ""}</span>
-            <span className="text-gray-300">·</span>
+            <span className="text-gray-300 dark:text-slate-600">·</span>
             <span>{totalVotes} voto{totalVotes !== 1 ? "s" : ""}</span>
           </div>
         </div>
