@@ -1,8 +1,9 @@
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db";
 import { classifyAndFindDuplicates } from "@/lib/ai";
 
 export async function GET() {
+  const prisma = await getPrisma();
   const ideas = await prisma.idea.findMany({
     orderBy: { createdAt: "desc" },
   });
@@ -16,6 +17,8 @@ export async function POST(request: NextRequest) {
   if (!title?.trim() || !description?.trim()) {
     return Response.json({ error: "Título e descrição são obrigatórios." }, { status: 400 });
   }
+
+  const prisma = await getPrisma();
 
   const existing = await prisma.idea.findMany({
     select: { id: true, title: true, description: true },

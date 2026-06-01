@@ -1,9 +1,10 @@
-import { prisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db";
 import IdeaGrid from "@/components/IdeaGrid";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
+  const prisma = await getPrisma();
   const ideas = await prisma.idea.findMany({
     orderBy: { createdAt: "desc" },
   });

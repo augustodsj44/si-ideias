@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/db";
+import { getPrisma } from "@/lib/db";
 import { TYPE_LABELS, type IdeaType } from "@/lib/types";
 
 export async function PATCH(
@@ -14,6 +14,7 @@ export async function PATCH(
     return Response.json({ error: "Tipo inválido." }, { status: 400 });
   }
 
+  const prisma = await getPrisma();
   const idea = await prisma.idea.update({
     where: { id },
     data: {
