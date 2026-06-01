@@ -1,25 +1,17 @@
 import { PrismaClient } from "@/app/generated/prisma/client";
+import { PrismaLibSql } from "@prisma/adapter-libsql";
 
 let _prisma: PrismaClient | null = null;
 
 export async function getPrisma(): Promise<PrismaClient> {
   if (_prisma) return _prisma;
 
-  const dbUrl = process.env.DATABASE_URL ?? "file:./dev.db";
+  const url = process.env["DATABASE_URL"];
+  const authToken = process.env["TURSO_AUTH_TOKEN"];
 
-  if (dbUrl.startsWith("libsql://") || dbUrl.startsWith("https://")) {
-    const { createClient } = await import("@libsql/client");
-    const { PrismaLibSQL } = await import("@prisma/adapter-libsql");
-    const libsql = createClient({ url: dbUrl, authToken: process.env.TURSO_AUTH_TOKEN });
-    const adapter = new PrismaLibSQL(libsql);
-    _prisma = new PrismaClient({ adapter } as never);
-    return _prisma;
-  }
+  if (!url) throw new Error("DATABASE_URL não configurada.");
 
-  // Local dev only — sem import de "path"
-  const { PrismaBetterSqlite3 } = await import("@prisma/adapter-better-sqlite3");
-  const dbFile = dbUrl.replace(/^file:/, "");
-  const adapter = new PrismaBetterSqlite3({ url: dbFile });
+  const adapter = new PrismaLibSql({ url, authToken });
   _prisma = new PrismaClient({ adapter } as never);
   return _prisma;
 }
