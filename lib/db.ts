@@ -1,5 +1,4 @@
 import { PrismaClient } from "@/app/generated/prisma/client";
-import path from "path";
 
 function createPrisma(): PrismaClient {
   const dbUrl = process.env.DATABASE_URL ?? "file:./dev.db";
@@ -7,9 +6,9 @@ function createPrisma(): PrismaClient {
   if (dbUrl.startsWith("libsql://") || dbUrl.startsWith("https://")) {
     // Produção: Turso (libsql)
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { createClient } = require("@libsql/client");
+    const { createClient } = require(/* turbopackIgnore: true */ "@libsql/client");
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { PrismaLibSQL } = require("@prisma/adapter-libsql");
+    const { PrismaLibSQL } = require(/* turbopackIgnore: true */ "@prisma/adapter-libsql");
     const libsql = createClient({ url: dbUrl, authToken: process.env.TURSO_AUTH_TOKEN });
     const adapter = new PrismaLibSQL(libsql);
     return new PrismaClient({ adapter } as never);
@@ -17,9 +16,13 @@ function createPrisma(): PrismaClient {
 
   // Desenvolvimento local: SQLite via better-sqlite3
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { PrismaBetterSqlite3 } = require("@prisma/adapter-better-sqlite3");
+  const { PrismaBetterSqlite3 } = require(/* turbopackIgnore: true */ "@prisma/adapter-better-sqlite3");
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const nodePath = require(/* turbopackIgnore: true */ "path");
   const dbFile = dbUrl.replace(/^file:/, "");
-  const dbPath = path.isAbsolute(dbFile) ? dbFile : path.resolve(process.cwd(), dbFile);
+  const dbPath = nodePath.isAbsolute(dbFile)
+    ? dbFile
+    : nodePath.resolve(/* turbopackIgnore: true */ process.cwd(), dbFile);
   const adapter = new PrismaBetterSqlite3({ url: dbPath });
   return new PrismaClient({ adapter } as never);
 }
