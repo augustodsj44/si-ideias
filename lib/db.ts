@@ -13,14 +13,13 @@ export async function getPrisma(): Promise<PrismaClient> {
     const libsql = createClient({ url: dbUrl, authToken: process.env.TURSO_AUTH_TOKEN });
     const adapter = new PrismaLibSQL(libsql);
     _prisma = new PrismaClient({ adapter } as never);
-  } else {
-    const { PrismaBetterSqlite3 } = await import("@prisma/adapter-better-sqlite3");
-    const { resolve, isAbsolute } = await import("path");
-    const dbFile = dbUrl.replace(/^file:/, "");
-    const dbPath = isAbsolute(dbFile) ? dbFile : resolve(process.cwd(), dbFile);
-    const adapter = new PrismaBetterSqlite3({ url: dbPath });
-    _prisma = new PrismaClient({ adapter } as never);
+    return _prisma;
   }
 
+  // Local dev only — sem import de "path"
+  const { PrismaBetterSqlite3 } = await import("@prisma/adapter-better-sqlite3");
+  const dbFile = dbUrl.replace(/^file:/, "");
+  const adapter = new PrismaBetterSqlite3({ url: dbFile });
+  _prisma = new PrismaClient({ adapter } as never);
   return _prisma;
 }
