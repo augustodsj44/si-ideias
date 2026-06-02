@@ -95,8 +95,8 @@ export default function Roulette() {
           <div
             className="rounded-full shadow-2xl border-4 border-white dark:border-slate-700"
             style={{
-              width: 300,
-              height: 300,
+              width: 460,
+              height: 460,
               background: members.length > 0 ? buildGradient() : "#e2e8f0",
               transform: `rotate(${rotation}deg)`,
               transition: spinning
@@ -109,9 +109,9 @@ export default function Roulette() {
               const seg = 360 / members.length;
               const angle = i * seg + seg / 2;
               const rad = ((angle - 90) * Math.PI) / 180;
-              const r = 105;
-              const x = 150 + r * Math.cos(rad);
-              const y = 150 + r * Math.sin(rad);
+              const r = 165;
+              const x = 230 + r * Math.cos(rad);
+              const y = 230 + r * Math.sin(rad);
               return (
                 <div
                   key={m.id}
@@ -132,7 +132,7 @@ export default function Roulette() {
           </div>
 
           {/* Centro */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-white dark:bg-slate-800 rounded-full border-4 border-gray-200 dark:border-slate-600 shadow-lg z-10" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 bg-white dark:bg-slate-800 rounded-full border-4 border-gray-200 dark:border-slate-600 shadow-lg z-10" />
         </div>
 
         <button

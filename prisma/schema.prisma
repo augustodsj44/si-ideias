@@ -13,6 +13,14 @@ model TeamMember {
   createdAt DateTime @default(now())
 }
 
+model Comment {
+  id        String   @id @default(cuid())
+  ideaId    String
+  author    String   @default("Anônimo")
+  text      String
+  createdAt DateTime @default(now())
+}
+
 model Idea {
   id          String   @id @default(cuid())
   title       String
