@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { TYPE_COLORS, TYPE_ICONS, TYPE_LABELS, type IdeaType } from "@/lib/types";
+import {
+  TYPE_COLORS, TYPE_ICONS, TYPE_LABELS, type IdeaType,
+  STATUS_STYLES, STATUS_ICONS, STATUS_LABELS, type IdeaStatus,
+} from "@/lib/types";
 
 interface Idea {
   id: string; title: string; description: string; type: string;
@@ -9,18 +12,6 @@ interface Idea {
   duplicateIds: string; createdAt: string;
 }
 interface Comment { id: string; author: string; text: string; createdAt: string; }
-
-const STATUS_STYLES: Record<string, string> = {
-  aberta: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400",
-  em_analise: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400",
-  aprovada: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
-  concluida: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
-  rejeitada: "bg-red-100 text-red-500 dark:bg-red-900/40 dark:text-red-400",
-};
-const STATUS_LABELS: Record<string, string> = {
-  aberta: "Aberta", em_analise: "Em análise", aprovada: "Aprovada",
-  concluida: "Concluída", rejeitada: "Rejeitada",
-};
 
 export default function IdeaCard({ idea, allIdeas, onVote, onDelete }: {
   idea: Idea; allIdeas: Idea[]; onVote: (id: string) => void; onDelete: (id: string) => void;
@@ -32,6 +23,9 @@ export default function IdeaCard({ idea, allIdeas, onVote, onDelete }: {
   const [currentTypeLabel, setCurrentTypeLabel] = useState(idea.typeLabel);
   const [typeMenuOpen, setTypeMenuOpen] = useState(false);
   const [savingType, setSavingType] = useState(false);
+  const [currentStatus, setCurrentStatus] = useState(idea.status);
+  const [statusMenuOpen, setStatusMenuOpen] = useState(false);
+  const [savingStatus, setSavingStatus] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   // Comentários
@@ -42,23 +36,32 @@ export default function IdeaCard({ idea, allIdeas, onVote, onDelete }: {
   const [commentAuthor, setCommentAuthor] = useState("");
   const [postingComment, setPostingComment] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const statusMenuRef = useRef<HTMLDivElement>(null);
 
   const duplicateIds: string[] = JSON.parse(idea.duplicateIds || "[]");
   const duplicates = allIdeas.filter((i) => duplicateIds.includes(i.id));
   const typeKey = currentType as IdeaType;
   const typeColor = TYPE_COLORS[typeKey] ?? TYPE_COLORS.outro;
   const typeIcon = TYPE_ICONS[typeKey] ?? "💡";
-  const statusStyle = STATUS_STYLES[idea.status] ?? STATUS_STYLES.aberta;
-  const statusLabel = STATUS_LABELS[idea.status] ?? idea.status;
+  const statusKey = currentStatus as IdeaStatus;
+  const statusStyle = STATUS_STYLES[statusKey] ?? STATUS_STYLES.aberta;
+  const statusLabel = STATUS_LABELS[statusKey] ?? currentStatus;
+  const statusIcon = STATUS_ICONS[statusKey] ?? "🟢";
   const date = new Date(idea.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+
+  // Sincroniza com novos dados vindos do servidor (polling / refresh)
+  useEffect(() => { setCurrentType(idea.type); setCurrentTypeLabel(idea.typeLabel); }, [idea.type, idea.typeLabel]);
+  useEffect(() => { setCurrentStatus(idea.status); }, [idea.status]);
+  useEffect(() => { if (!voted) setVotes(idea.votes); }, [idea.votes, voted]);
 
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setTypeMenuOpen(false);
+      if (statusMenuRef.current && !statusMenuRef.current.contains(e.target as Node)) setStatusMenuOpen(false);
     }
-    if (typeMenuOpen) document.addEventListener("mousedown", onClickOutside);
+    if (typeMenuOpen || statusMenuOpen) document.addEventListener("mousedown", onClickOutside);
     return () => document.removeEventListener("mousedown", onClickOutside);
-  }, [typeMenuOpen]);
+  }, [typeMenuOpen, statusMenuOpen]);
 
   async function loadComments() {
     setLoadingComments(true);
@@ -112,6 +115,18 @@ export default function IdeaCard({ idea, allIdeas, onVote, onDelete }: {
     } finally { setSavingType(false); }
   }
 
+  async function handleStatusChange(newStatus: IdeaStatus) {
+    if (newStatus === currentStatus) { setStatusMenuOpen(false); return; }
+    setSavingStatus(true); setStatusMenuOpen(false);
+    try {
+      const res = await fetch(`/api/ideas/${idea.id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (res.ok) setCurrentStatus(newStatus);
+    } finally { setSavingStatus(false); }
+  }
+
   async function handleDelete() {
     setDeleting(true);
     try { await fetch(`/api/ideas/${idea.id}`, { method: "DELETE" }); onDelete(idea.id); }
@@ -125,7 +140,26 @@ export default function IdeaCard({ idea, allIdeas, onVote, onDelete }: {
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-semibold text-gray-900 dark:text-slate-100 text-base leading-snug flex-1">{idea.title}</h3>
           <div className="flex items-center gap-1.5 shrink-0">
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusStyle}`}>{statusLabel}</span>
+            <div className="relative" ref={statusMenuRef}>
+              <button
+                onClick={() => setStatusMenuOpen((o) => !o)} disabled={savingStatus}
+                className={`text-xs px-2 py-0.5 rounded-full font-medium transition-all ${statusStyle} ${savingStatus ? "opacity-50 cursor-wait" : "hover:opacity-80 cursor-pointer"}`}
+              >
+                {savingStatus ? "⏳" : statusIcon} {statusLabel} ✎
+              </button>
+              {statusMenuOpen && (
+                <div className="absolute top-full right-0 mt-2 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-lg overflow-hidden z-20 min-w-40">
+                  {(Object.entries(STATUS_LABELS) as [IdeaStatus, string][]).map(([key, label]) => (
+                    <button key={key} onClick={() => handleStatusChange(key)}
+                      className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 ${key === currentStatus ? "font-semibold bg-gray-50 dark:bg-slate-700" : ""}`}
+                    >
+                      <span>{STATUS_ICONS[key]}</span><span>{label}</span>
+                      {key === currentStatus && <span className="ml-auto text-indigo-500">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             {confirmDelete ? (
               <div className="flex items-center gap-1">
                 <button onClick={handleDelete} disabled={deleting} className="text-xs px-2 py-0.5 rounded-lg bg-red-500 text-white font-medium hover:bg-red-600 disabled:opacity-50">

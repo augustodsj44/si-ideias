@@ -32,3 +32,34 @@ export const TYPE_ICONS: Record<IdeaType, string> = {
   bug: "🐛",
   outro: "💡",
 };
+
+export type IdeaStatus =
+  | "aberta"
+  | "em_analise"
+  | "em_andamento"
+  | "concluida"
+  | "cancelada";
+
+export const STATUS_LABELS: Record<IdeaStatus, string> = {
+  aberta: "Aberta",
+  em_analise: "Em análise",
+  em_andamento: "Em andamento",
+  concluida: "Concluída",
+  cancelada: "Cancelada",
+};
+
+export const STATUS_STYLES: Record<IdeaStatus, string> = {
+  aberta: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400",
+  em_analise: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400",
+  em_andamento: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
+  concluida: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
+  cancelada: "bg-red-100 text-red-500 dark:bg-red-900/40 dark:text-red-400",
+};
+
+export const STATUS_ICONS: Record<IdeaStatus, string> = {
+  aberta: "🟢",
+  em_analise: "🔍",
+  em_andamento: "🚧",
+  concluida: "✅",
+  cancelada: "🚫",
+};

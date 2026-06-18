@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import IdeaCard from "./IdeaCard";
 import NewIdeaForm from "./NewIdeaForm";
 import ThemeToggle from "./ThemeToggle";
-import { TYPE_LABELS } from "@/lib/types";
+import { TYPE_LABELS, STATUS_LABELS, STATUS_ICONS, type IdeaStatus } from "@/lib/types";
 
 interface Idea {
   id: string; title: string; description: string; type: string;
@@ -23,6 +23,7 @@ const SORT_LABELS: Record<SortKey, string> = {
 export default function IdeaGrid({ initialIdeas }: { initialIdeas: Idea[] }) {
   const [ideas, setIdeas] = useState<Idea[]>(initialIdeas);
   const [filter, setFilter] = useState("todos");
+  const [statusFilter, setStatusFilter] = useState("todos");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortKey>("recentes");
 
@@ -41,11 +42,18 @@ export default function IdeaGrid({ initialIdeas }: { initialIdeas: Idea[] }) {
 
   useEffect(() => { setIdeas(initialIdeas); }, [initialIdeas]);
 
+  // Atualização em tempo real: re-busca as ideias a cada 5s
+  useEffect(() => {
+    const interval = setInterval(refresh, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   const filtered = ideas
     .filter((idea) => {
       const matchType = filter === "todos" || idea.type === filter;
+      const matchStatus = statusFilter === "todos" || idea.status === statusFilter;
       const q = search.toLowerCase();
-      return matchType && (!q || idea.title.toLowerCase().includes(q) ||
+      return matchType && matchStatus && (!q || idea.title.toLowerCase().includes(q) ||
         idea.description.toLowerCase().includes(q) || idea.author.toLowerCase().includes(q));
     })
     .sort((a, b) => {
@@ -57,6 +65,13 @@ export default function IdeaGrid({ initialIdeas }: { initialIdeas: Idea[] }) {
   const typeOptions = [
     { value: "todos", label: "Todas" },
     ...Object.entries(TYPE_LABELS).map(([value, label]) => ({ value, label })),
+  ];
+
+  const statusOptions = [
+    { value: "todos", label: "Todos", icon: "" },
+    ...(Object.entries(STATUS_LABELS) as [IdeaStatus, string][]).map(
+      ([value, label]) => ({ value, label, icon: STATUS_ICONS[value] })
+    ),
   ];
 
   return (
@@ -74,6 +89,23 @@ export default function IdeaGrid({ initialIdeas }: { initialIdeas: Idea[] }) {
             }`}
           >
             {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Filtros de status */}
+      <div className="flex flex-wrap gap-2">
+        {statusOptions.map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => setStatusFilter(opt.value)}
+            className={`text-xs px-3 py-1.5 rounded-full font-medium border transition-all ${
+              statusFilter === opt.value
+                ? "bg-gray-900 dark:bg-slate-100 text-white dark:text-slate-900 border-gray-900 dark:border-slate-100"
+                : "bg-white dark:bg-slate-800 text-gray-600 dark:text-slate-300 border-gray-200 dark:border-slate-700 hover:border-gray-400"
+            }`}
+          >
+            {opt.icon && <span className="mr-1">{opt.icon}</span>}{opt.label}
           </button>
         ))}
       </div>
