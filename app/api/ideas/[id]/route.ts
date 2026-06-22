@@ -18,9 +18,15 @@ export async function PATCH(
 ) {
   const { id } = await params;
   const body = await request.json();
-  const { type, status } = body;
+  const { type, status, title, description } = body;
 
-  const data: { type?: string; typeLabel?: string; status?: string } = {};
+  const data: {
+    type?: string;
+    typeLabel?: string;
+    status?: string;
+    title?: string;
+    description?: string;
+  } = {};
 
   if (type !== undefined) {
     if (!(type in TYPE_LABELS)) {
@@ -35,6 +41,20 @@ export async function PATCH(
       return Response.json({ error: "Status inválido." }, { status: 400 });
     }
     data.status = status;
+  }
+
+  if (title !== undefined) {
+    if (!title?.trim()) {
+      return Response.json({ error: "Título vazio." }, { status: 400 });
+    }
+    data.title = title.trim();
+  }
+
+  if (description !== undefined) {
+    if (!description?.trim()) {
+      return Response.json({ error: "Descrição vazia." }, { status: 400 });
+    }
+    data.description = description.trim();
   }
 
   if (Object.keys(data).length === 0) {

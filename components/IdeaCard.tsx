@@ -19,6 +19,17 @@ export default function IdeaCard({ idea, allIdeas, onVote, onDelete }: {
   const [voted, setVoted] = useState(false);
   const [votes, setVotes] = useState(idea.votes);
   const [expanded, setExpanded] = useState(false);
+  // Edição de título/descrição
+  const [currentTitle, setCurrentTitle] = useState(idea.title);
+  const [currentDescription, setCurrentDescription] = useState(idea.description);
+  const [editingIdea, setEditingIdea] = useState(false);
+  const [editTitle, setEditTitle] = useState(idea.title);
+  const [editDescription, setEditDescription] = useState(idea.description);
+  const [savingEdit, setSavingEdit] = useState(false);
+  // Edição de comentário
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editCommentText, setEditCommentText] = useState("");
+  const [savingComment, setSavingComment] = useState(false);
   const [currentType, setCurrentType] = useState(idea.type);
   const [currentTypeLabel, setCurrentTypeLabel] = useState(idea.typeLabel);
   const [typeMenuOpen, setTypeMenuOpen] = useState(false);
@@ -52,6 +63,7 @@ export default function IdeaCard({ idea, allIdeas, onVote, onDelete }: {
   // Sincroniza com novos dados vindos do servidor (polling / refresh)
   useEffect(() => { setCurrentType(idea.type); setCurrentTypeLabel(idea.typeLabel); }, [idea.type, idea.typeLabel]);
   useEffect(() => { setCurrentStatus(idea.status); }, [idea.status]);
+  useEffect(() => { if (!editingIdea) { setCurrentTitle(idea.title); setCurrentDescription(idea.description); } }, [idea.title, idea.description, editingIdea]);
   useEffect(() => { if (!voted) setVotes(idea.votes); }, [idea.votes, voted]);
 
   useEffect(() => {
@@ -127,6 +139,50 @@ export default function IdeaCard({ idea, allIdeas, onVote, onDelete }: {
     } finally { setSavingStatus(false); }
   }
 
+  function startEditIdea() {
+    setEditTitle(currentTitle);
+    setEditDescription(currentDescription);
+    setEditingIdea(true);
+  }
+
+  async function saveEditIdea(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editTitle.trim() || !editDescription.trim()) return;
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`/api/ideas/${idea.id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: editTitle, description: editDescription }),
+      });
+      if (res.ok) {
+        setCurrentTitle(editTitle.trim());
+        setCurrentDescription(editDescription.trim());
+        setEditingIdea(false);
+      }
+    } finally { setSavingEdit(false); }
+  }
+
+  function startEditComment(c: Comment) {
+    setEditingCommentId(c.id);
+    setEditCommentText(c.text);
+  }
+
+  async function saveEditComment(commentId: string) {
+    if (!editCommentText.trim()) return;
+    setSavingComment(true);
+    try {
+      const res = await fetch(`/api/ideas/${idea.id}/comments/${commentId}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: editCommentText }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setComments((prev) => prev.map((c) => (c.id === commentId ? updated : c)));
+        setEditingCommentId(null);
+      }
+    } finally { setSavingComment(false); }
+  }
+
   async function handleDelete() {
     setDeleting(true);
     try { await fetch(`/api/ideas/${idea.id}`, { method: "DELETE" }); onDelete(idea.id); }
@@ -138,8 +194,23 @@ export default function IdeaCard({ idea, allIdeas, onVote, onDelete }: {
       <div className="p-5 flex flex-col gap-3 flex-1">
         {/* Header */}
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-semibold text-gray-900 dark:text-slate-100 text-base leading-snug flex-1">{idea.title}</h3>
+          {editingIdea ? (
+            <input
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              className="flex-1 font-semibold text-gray-900 dark:text-slate-100 text-base leading-snug border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            />
+          ) : (
+            <h3 className="font-semibold text-gray-900 dark:text-slate-100 text-base leading-snug flex-1">{currentTitle}</h3>
+          )}
           <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={() => (editingIdea ? setEditingIdea(false) : startEditIdea())}
+              className="text-gray-300 dark:text-slate-600 hover:text-indigo-400 transition-colors text-base p-0.5"
+              title={editingIdea ? "Cancelar edição" : "Editar ideia"}
+            >
+              {editingIdea ? "✕" : "✎"}
+            </button>
             <div className="relative" ref={statusMenuRef}>
               <button
                 onClick={() => setStatusMenuOpen((o) => !o)} disabled={savingStatus}
@@ -176,13 +247,36 @@ export default function IdeaCard({ idea, allIdeas, onVote, onDelete }: {
         </div>
 
         {/* Descrição */}
-        <p className={`text-sm text-gray-600 dark:text-slate-300 leading-relaxed ${expanded ? "" : "line-clamp-3"}`}>
-          {idea.description}
-        </p>
-        {idea.description.length > 150 && (
-          <button onClick={() => setExpanded((e) => !e)} className="text-xs text-indigo-500 hover:text-indigo-700 self-start -mt-1">
-            {expanded ? "Ver menos" : "Ver mais"}
-          </button>
+        {editingIdea ? (
+          <form onSubmit={saveEditIdea} className="space-y-2">
+            <textarea
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+              rows={4}
+              className="w-full text-sm text-gray-600 dark:text-slate-300 leading-relaxed border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-y"
+            />
+            <div className="flex gap-2">
+              <button type="submit" disabled={savingEdit || !editTitle.trim() || !editDescription.trim()}
+                className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 dark:disabled:bg-slate-700 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors">
+                {savingEdit ? "Salvando..." : "Salvar"}
+              </button>
+              <button type="button" onClick={() => setEditingIdea(false)}
+                className="text-xs px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300">
+                Cancelar
+              </button>
+            </div>
+          </form>
+        ) : (
+          <>
+            <p className={`text-sm text-gray-600 dark:text-slate-300 leading-relaxed ${expanded ? "" : "line-clamp-3"}`}>
+              {currentDescription}
+            </p>
+            {currentDescription.length > 150 && (
+              <button onClick={() => setExpanded((e) => !e)} className="text-xs text-indigo-500 hover:text-indigo-700 self-start -mt-1">
+                {expanded ? "Ver menos" : "Ver mais"}
+              </button>
+            )}
+          </>
         )}
 
         {/* Duplicata */}
@@ -254,10 +348,34 @@ export default function IdeaCard({ idea, allIdeas, onVote, onDelete }: {
                         <span className="text-gray-400 dark:text-slate-500 text-xs">
                           {new Date(c.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
                         </span>
+                        {editingCommentId !== c.id && (
+                          <button onClick={() => startEditComment(c)} className="text-gray-300 dark:text-slate-600 hover:text-indigo-400 opacity-0 group-hover:opacity-100 transition-all text-xs">✎</button>
+                        )}
                         <button onClick={() => deleteComment(c.id)} className="text-gray-300 dark:text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all text-xs">✕</button>
                       </div>
                     </div>
-                    <p className="text-gray-600 dark:text-slate-300">{c.text}</p>
+                    {editingCommentId === c.id ? (
+                      <div className="space-y-2">
+                        <textarea
+                          value={editCommentText}
+                          onChange={(e) => setEditCommentText(e.target.value)}
+                          rows={2}
+                          className="w-full text-sm text-gray-600 dark:text-slate-300 border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-y"
+                        />
+                        <div className="flex gap-2">
+                          <button onClick={() => saveEditComment(c.id)} disabled={savingComment || !editCommentText.trim()}
+                            className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 dark:disabled:bg-slate-700 disabled:cursor-not-allowed text-white px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors">
+                            {savingComment ? "..." : "Salvar"}
+                          </button>
+                          <button onClick={() => setEditingCommentId(null)}
+                            className="text-xs px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300">
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-gray-600 dark:text-slate-300">{c.text}</p>
+                    )}
                   </li>
                 ))}
               </ul>
